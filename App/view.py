@@ -25,6 +25,44 @@ import sys
 import controller
 from DISClib.ADT import list as lt
 assert cf
+from DISClib.ADT.graph import gr
+from DISClib.ADT import map as mp
+from DISClib.DataStructures import mapentry as me
+from prettytable import PrettyTable
+
+sys.setrecursionlimit(20000)
+
+def print_aeropuerto(author):
+    """
+    Imprime la información del autor seleccionado
+    """
+    if author == '':
+        print('No se encontraron artistas nacidos en el rango dado')
+    elif author:
+        print("\n")
+        x = PrettyTable(["Nombre", "Ciudad", 'Pais','Latitud','Longitud'])
+        x._max_width = {"Nombre" : 20, "Ciudad" : 20,"Pais" : 20, "Latitud" : 20,"Longitud" : 20}
+        x.add_row([author['Name']+'\n', author['City'], author['Country'],author['Latitude'],author['Longitude']])
+        print(x)
+        print("\n")
+    else:
+        print('No se encontro el autor.\n')
+
+def print_ciudades(author):
+    """
+    Imprime la información del autor seleccionado
+    """
+    if author == '':
+        print('No se encontraron artistas nacidos en el rango dado')
+    elif author:
+        print("\n")
+        x = PrettyTable(["Nombre", "Poblacion", 'Latitud','Longitud'])
+        x._max_width = {"Nombre" : 20, "Poblacion" : 20,"Latitud" : 20, "Longitud" : 20}
+        x.add_row([author['city']+'\n', author['population'], author['lat'],author['lng']])
+        print(x)
+        print("\n")
+    else:
+        print('No se encontro el autor.\n')
 
 
 """
@@ -57,19 +95,60 @@ while True:
     printMenu()
     inputs = input('Seleccione una opción para continuar\n')
     if int(inputs[0]) == 1:
+
         print("Cargando información de los archivos ....")
+        cont = controller.init()
 
     elif int(inputs[0]) == 2:
 
-        print('aqui se cargan los archivos')
+        controller.loadAirportsRutes(cont)
+        print('\n' +('-'*20)+ 'Informacion grafo dirigido' +('-'*20)+ '\n')
+        print('Numero de aeropuertos: ' + str(gr.numVertices(cont['rutas'])))
+        print('Numero de rutas: ' + str(gr.numEdges(cont['rutas'])))
+        print('\n' + 'Primer aeropuerto del grafo' + '\n')
+        print_aeropuerto(controller.infoaeropuerto(cont,lt.firstElement(gr.vertices(cont['rutas']))))
+
+        print('\n' +('-'*20)+ 'Informacion grafo no dirigido' +('-'*20)+ '\n')
+        print('Numero de aeropuertos: ' + str(gr.numVertices(cont['rutas_idayretorno'])))
+        print('Numero de rutas: ' + str(gr.numEdges(cont['rutas_idayretorno'])))
+        print('\n' + 'Primer aeropuerto del grafo' + '\n')
+        print_aeropuerto(controller.infoaeropuerto(cont,lt.firstElement(gr.vertices(cont['rutas_idayretorno']))))
+
+        print('\n' +('-'*20)+ 'Informacion grafo dirigido solo con una direccion y sin repeticion' +('-'*20)+ '\n')
+        print('Numero de aeropuertos: ' + str(gr.numVertices(cont['rutasconaerolineas'])))
+        print('Numero de rutas: ' + str(gr.numEdges(cont['rutasconaerolineas'])))
+        print('\n' + 'Primer aeropuerto del grafo' + '\n')
+        print_aeropuerto(controller.infoaeropuerto(cont,lt.firstElement(gr.vertices(cont['rutasconaerolineas']))))
+
+        print('\n' +('-'*20)+ 'Informacion ciudades' +('-'*20)+ '\n')
+        print('Total de ciudades: ' + str(lt.size(cont['ciudades'])))
+        print('\n' + 'Ultima ciudad cargada' + '\n')
+        print_ciudades(lt.lastElement(cont['ciudades']))
+
+        print('\n' + 'Primer aeropuerto del archivo' + '\n')
+        print_aeropuerto(lt.firstElement(cont['aeropuertosinfolista']))
 
     elif int(inputs[0]) == 3:
-        
-        print('aqui se ve a presentar la lista de areopuertos y el numero de aeropuertos conectados')
+
+        respuesta = controller.primer_req(cont)
+        print('aqui se ve a presentar la lista de areopuertos y el numero de aeropuertos conectados del grafo dirigido')
+        print('\n' + 'El numero de conexiones es de:' + str(respuesta[0]))
+        print('\n' + 'El numero de conexiones es de aeropuertos:' + str(respuesta[2]))
+        print_aeropuerto(respuesta[1])
+
+        print('aqui se ve a presentar la lista de areopuertos y el numero de aeropuertos conectados del grafo no dirigido')
+        print('\n' + 'El numero de conexiones es de:' + str(respuesta[3]))
+        print('\n' + 'El numero de conexiones es de aeropuertos:' + str(respuesta[5]))
+        print_aeropuerto(respuesta[4])
 
     elif int(inputs[0]) == 4:
         
         print('aqui se ve a presentar el cluster prsente en la red de aeropuertos y una comparacion')
+        codigo1 = input('Escriba el codigo del primer aeropuerto')
+        codigo2 = input('Escriba el codigo del segundo aeropuerto')
+        respuesta = controller.segundo_req(cont,codigo1,codigo2)
+        print('\n' + 'El numero de elementos fuertemente conectados es de:' + str(respuesta[0]))
+        print('\n' + 'Los dos vertices estan fuertemente conectados:' + str(respuesta[1]))
 
     elif int(inputs[0]) == 5:
         
