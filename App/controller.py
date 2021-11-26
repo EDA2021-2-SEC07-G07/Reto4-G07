@@ -98,3 +98,19 @@ def segundo_req(analyzer,codigo1,codigo2):
     """
     conectados = model.segundo_req(analyzer,codigo1,codigo2)
     return conectados
+
+def opciones_ciudades(analyzer,ciudad):
+    """
+    Retorna los libros que fueron publicados
+    en un año
+    """
+    ciudades = model.opciones_ciudades(analyzer,ciudad)
+    return ciudades
+
+def aeropuertoopciones(analyzer,ciudad):
+    """
+    Retorna los libros que fueron publicados
+    en un año
+    """
+    aeropuertos = model.aeropuertoopciones(analyzer,ciudad)
+    return aeropuertos
