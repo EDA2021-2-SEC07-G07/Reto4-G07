@@ -86,11 +86,6 @@ def newAnalyzer():
     
     analyzer['ciudades'] = lt.newList('ARRAY_LIST',compareCiudades)
 
-    analyzer['rutasconaerolineas'] = gr.newGraph(datastructure='ADJ_LIST',
-                                              directed=True,
-                                              size=9100,
-                                              comparefunction=compareStopIds)
-
     analyzer['aeropuertosinfolista'] = lt.newList('ARRAY_LIST',compareCiudades)
 
     analyzer["infociudadesrepetidas"] = mp.newMap(9100,
@@ -108,6 +103,7 @@ def newAnalyzer():
 def addVerticeGrafo(analyzer, aeropuerto):
 
     addStop(analyzer, aeropuerto['IATA'])
+    addStopidayvuelta(analyzer, aeropuerto['IATA'])
     mp.put(analyzer["infoaeropuertos"], aeropuerto['IATA'], aeropuerto)
     lt.addLast(analyzer['aeropuertosinfolista'], aeropuerto)
     addaeropuertoenciudad(analyzer,aeropuerto['City'],aeropuerto)
@@ -117,9 +113,6 @@ def addStop(analyzer, aeropuerto_identificador):
     if not gr.containsVertex(analyzer['rutas'], aeropuerto_identificador):
         gr.insertVertex(analyzer['rutas'], aeropuerto_identificador)
 
-    if not gr.containsVertex(analyzer['rutasconaerolineas'], aeropuerto_identificador):
-        gr.insertVertex(analyzer['rutasconaerolineas'], aeropuerto_identificador)
-
 def addStopidayvuelta(analyzer, aeropuerto_identificador):
 
     if not gr.containsVertex(analyzer['rutas_idayretorno'], aeropuerto_identificador):
@@ -128,11 +121,6 @@ def addStopidayvuelta(analyzer, aeropuerto_identificador):
 def addRuta(analyzer, aeropuerto_identificador):
     
     gr.addEdge(analyzer['rutas'],aeropuerto_identificador['Departure'],aeropuerto_identificador['Destination'],float(aeropuerto_identificador['distance_km']))
-    existe_arco_ida = gr.getEdge(analyzer['rutasconaerolineas'],aeropuerto_identificador['Departure'],aeropuerto_identificador['Destination'])
-    existe_arco_vuelta = gr.getEdge(analyzer['rutasconaerolineas'],aeropuerto_identificador['Destination'],aeropuerto_identificador['Departure'])
-    if existe_arco_ida is None and existe_arco_vuelta is None:
-        gr.addEdge(analyzer['rutasconaerolineas'],aeropuerto_identificador['Departure'],aeropuerto_identificador['Destination'],float(aeropuerto_identificador['distance_km']))
-
 
 def addRutaidayvuleta(analyzer):
 
@@ -143,11 +131,7 @@ def addRutaidayvuleta(analyzer):
             lista_arcos = gr.adjacentEdges(analyzer['rutas'],vertice)
             for arco in lt.iterator(lista_arcos):
                 if arco['vertexB'] == vertices:
-                    addStopidayvuelta(analyzer,arco['vertexA'])
-                    addStopidayvuelta(analyzer,arco['vertexB'])
-                    existe_arco = gr.getEdge(analyzer['rutas_idayretorno'],arco['vertexA'],arco['vertexB'])
-                    if existe_arco is None:
-                        gr.addEdge(analyzer['rutas_idayretorno'],arco['vertexA'],arco['vertexB'],float(arco['weight']))
+                    gr.addEdge(analyzer['rutas_idayretorno'],arco['vertexA'],arco['vertexB'],float(arco['weight']))
 
 def addCiudad(analyzer,ciudad):
 
@@ -208,6 +192,18 @@ def newaeropuerto(pubyear,distancia):
     entry['distancias'] = distancia
     return entry
 
+def newcantidad(aeropuerto,total,entrada,salida):
+    """
+    Esta funcion crea la estructura de libros asociados
+    a un año.
+    """
+    entry = {'aeropuerto': "", "distancias": ''}
+    entry['aeropuerto'] = aeropuerto
+    entry['cantidadtotal'] = total
+    entry['cantidadentrada'] = entrada
+    entry['cantidadsalida'] = salida
+    return entry
+
 # Funciones de consulta
 
 def infoaeropuerto(analyzer,codigoAita):
@@ -254,6 +250,11 @@ def comparedistancias(ciudad1, ciudad2):
     fecha2 = ciudad2['distancias']
     return float(fecha1) < float(fecha2)
 
+def comparecantidad(ciudad1, ciudad2):
+    fecha1 = ciudad1['cantidadtotal']
+    fecha2 = ciudad2['cantidadtotal']
+    return float(fecha1) > float(fecha2)
+
 # Funciones de ordenamiento
 
 def sortcomparedistancias(catalog):
@@ -261,24 +262,30 @@ def sortcomparedistancias(catalog):
     sorted_list = merge.sort(catalog, comparedistancias)
     return sorted_list
 
+def sortcomparecanitdades(catalog):
+
+    sorted_list = merge.sort(catalog, comparecantidad)
+    return sorted_list
+
 #Funciones de requerimientos
 
 def primer_req(analyzer):
 
 #GRAFO DIRIGIDO
-    vertices_total = gr.vertices(analyzer['rutasconaerolineas'])
-    mayor_numero1 = 0
-    mayor_aeropuerto1 = None
+    vertices_total = gr.vertices(analyzer['rutas'])
+    lista_canitdad_digrafo = lt.newList('ARRAY_LIST')
     for vertice in lt.iterator(vertices_total):
-        entran = gr.indegree(analyzer['rutasconaerolineas'],vertice)
-        salen = gr.outdegree(analyzer['rutasconaerolineas'],vertice)
+        entran = gr.indegree(analyzer['rutas'],vertice)
+        salen = gr.outdegree(analyzer['rutas'],vertice)
         total_rutas = entran + salen
-        if float(total_rutas) > mayor_numero1:
-            mayor_numero1 = float(total_rutas)
-            mayor_aeropuerto1 = vertice
-    llave_valor_vertice = mp.get(analyzer['rutasconaerolineas']['vertices'], mayor_aeropuerto1)
-    lst1 = me.getValue(llave_valor_vertice)
-    info_mayor1 = me.getValue(mp.get(analyzer['infoaeropuertos'],mayor_aeropuerto1))
+        cantidad = newcantidad(vertice,total_rutas,entran,salen)
+        lt.addLast(lista_canitdad_digrafo,cantidad)
+    orden = sortcomparecanitdades(lista_canitdad_digrafo)
+    primeros5 = lt.subList(orden,1,5)
+    conectados_numero_interno = lt.newList('ARRAY_LIST')
+    for c in lt.iterator(orden):
+        if c['cantidadtotal'] != 0:
+            lt.addLast(conectados_numero_interno,c)
 
 #GRAFO NO DIRIGIDO
     vertices_total_no = gr.vertices(analyzer['rutas_idayretorno'])
@@ -292,7 +299,7 @@ def primer_req(analyzer):
     llave_valor_vertice1 = mp.get(analyzer['rutas_idayretorno']['vertices'], mayor_aeropuerto2)
     lst2 = me.getValue(llave_valor_vertice1)
     info_mayor2 = me.getValue(mp.get(analyzer['infoaeropuertos'],mayor_aeropuerto2))
-    return mayor_numero1,info_mayor1,mayor_numero2,info_mayor2
+    return conectados_numero_interno,primeros5,mayor_numero2,info_mayor2
 
 def segundo_req(analyzer,codigo1,codigo2):
 
