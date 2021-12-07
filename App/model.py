@@ -33,6 +33,7 @@ from DISClib.Algorithms.Graphs import scc
 from DISClib.DataStructures import mapentry as me
 from DISClib.Algorithms.Sorting import mergesort as merge
 from DISClib.Algorithms.Graphs import dijsktra as djk
+from DISClib.Algorithms.Graphs import prim as pr
 from DISClib.Utils import error as error
 assert config
 import math
@@ -86,6 +87,11 @@ def newAnalyzer():
     
     analyzer['ciudades'] = lt.newList('ARRAY_LIST',compareCiudades)
 
+    analyzer['rutasconaerolineas'] = gr.newGraph(datastructure='ADJ_LIST',
+                                              directed=True,
+                                              size=9100,
+                                              comparefunction=compareStopIds)
+
     analyzer['aeropuertosinfolista'] = lt.newList('ARRAY_LIST',compareCiudades)
 
     analyzer["infociudadesrepetidas"] = mp.newMap(9100,
@@ -103,7 +109,7 @@ def newAnalyzer():
 def addVerticeGrafo(analyzer, aeropuerto):
 
     addStop(analyzer, aeropuerto['IATA'])
-    addStopidayvuelta(analyzer, aeropuerto['IATA'])
+    addStopidayvuelta(analyzer,aeropuerto['IATA'])
     mp.put(analyzer["infoaeropuertos"], aeropuerto['IATA'], aeropuerto)
     lt.addLast(analyzer['aeropuertosinfolista'], aeropuerto)
     addaeropuertoenciudad(analyzer,aeropuerto['City'],aeropuerto)
@@ -113,6 +119,9 @@ def addStop(analyzer, aeropuerto_identificador):
     if not gr.containsVertex(analyzer['rutas'], aeropuerto_identificador):
         gr.insertVertex(analyzer['rutas'], aeropuerto_identificador)
 
+    if not gr.containsVertex(analyzer['rutasconaerolineas'], aeropuerto_identificador):
+        gr.insertVertex(analyzer['rutasconaerolineas'], aeropuerto_identificador)
+
 def addStopidayvuelta(analyzer, aeropuerto_identificador):
 
     if not gr.containsVertex(analyzer['rutas_idayretorno'], aeropuerto_identificador):
@@ -121,6 +130,11 @@ def addStopidayvuelta(analyzer, aeropuerto_identificador):
 def addRuta(analyzer, aeropuerto_identificador):
     
     gr.addEdge(analyzer['rutas'],aeropuerto_identificador['Departure'],aeropuerto_identificador['Destination'],float(aeropuerto_identificador['distance_km']))
+    existe_arco_ida = gr.getEdge(analyzer['rutasconaerolineas'],aeropuerto_identificador['Departure'],aeropuerto_identificador['Destination'])
+    existe_arco_vuelta = gr.getEdge(analyzer['rutasconaerolineas'],aeropuerto_identificador['Destination'],aeropuerto_identificador['Departure'])
+    if existe_arco_ida is None and existe_arco_vuelta is None:
+        gr.addEdge(analyzer['rutasconaerolineas'],aeropuerto_identificador['Departure'],aeropuerto_identificador['Destination'],float(aeropuerto_identificador['distance_km']))
+
 
 def addRutaidayvuleta(analyzer):
 
@@ -131,9 +145,11 @@ def addRutaidayvuleta(analyzer):
             lista_arcos = gr.adjacentEdges(analyzer['rutas'],vertice)
             for arco in lt.iterator(lista_arcos):
                 if arco['vertexB'] == vertices:
-                    gr.addEdge(analyzer['rutas_idayretorno'],arco['vertexA'],arco['vertexB'],float(arco['weight']))
+                    existe_arco = gr.getEdge(analyzer['rutas_idayretorno'],arco['vertexA'],arco['vertexB'])
+                    if existe_arco is None:
+                        gr.addEdge(analyzer['rutas_idayretorno'],arco['vertexA'],arco['vertexB'],float(arco['weight']))
 
-def addCiudad(analyzer,ciudad):
+def addCiudad(analyzer, ciudad):
 
     lt.addLast(analyzer['ciudades'], ciudad)
     addCiudadRepetida(analyzer, ciudad['city'].strip(), ciudad)
@@ -212,6 +228,29 @@ def infoaeropuerto(analyzer,codigoAita):
     informacion = me.getValue(llave_valor)
     return informacion
 
+def opciones_ciudades(analyzer,ciudad):
+
+    lista_opciones_origen = mp.get(analyzer['infociudadesrepetidas'],ciudad)
+
+    return lista_opciones_origen
+
+def aeropuertoopciones(analyzer,ciudad):
+
+    longitud = float(ciudad['lng'])
+    latitud = float(ciudad['lat'])
+    lista_distancias = lt.newList('ARRAY_LIST')
+    llave_valor = mp.get(analyzer['aeropuertosenciudades'],ciudad['city'])
+    lista_aeropuertos = me.getValue(llave_valor)['repetidas']
+    for c in lt.iterator(lista_aeropuertos):
+        lat_aeropuerto = float(c['Latitude'])
+        long_aeropuerto = float(c['Longitude'])
+        distancia = haversine(latitud,longitud,lat_aeropuerto,long_aeropuerto)
+        aeropuerto_dist = newaeropuerto(c['IATA'],distancia)
+        lt.addLast(lista_distancias,aeropuerto_dist)
+    orden = sortcomparedistancias(lista_distancias)
+    aeropuerto_cercano = lt.firstElement(orden)
+    return aeropuerto_cercano
+
 # Funciones utilizadas para comparar elementos dentro de una lista
 
 def compareStopIds(stop, keyvaluestop):
@@ -273,6 +312,7 @@ def primer_req(analyzer):
 
 #GRAFO DIRIGIDO
     vertices_total = gr.vertices(analyzer['rutas'])
+    lista_final = lt.newList('ARRAY_LIST')
     lista_canitdad_digrafo = lt.newList('ARRAY_LIST')
     for vertice in lt.iterator(vertices_total):
         entran = gr.indegree(analyzer['rutas'],vertice)
@@ -280,6 +320,7 @@ def primer_req(analyzer):
         total_rutas = entran + salen
         cantidad = newcantidad(vertice,total_rutas,entran,salen)
         lt.addLast(lista_canitdad_digrafo,cantidad)
+        lt.addLast(lista_final,cantidad)
     orden = sortcomparecanitdades(lista_canitdad_digrafo)
     primeros5 = lt.subList(orden,1,5)
     conectados_numero_interno = lt.newList('ARRAY_LIST')
@@ -289,17 +330,31 @@ def primer_req(analyzer):
 
 #GRAFO NO DIRIGIDO
     vertices_total_no = gr.vertices(analyzer['rutas_idayretorno'])
-    mayor_numero2 = 0
-    mayor_aeropuerto2 = None
+    lista_canitdad_grafo = lt.newList('ARRAY_LIST')
     for vertice_no in lt.iterator(vertices_total_no):
-        total_rutas1 = gr.degree(analyzer['rutas_idayretorno'],vertice_no)
-        if float(total_rutas1) > mayor_numero2:
-            mayor_numero2 = float(total_rutas1)
-            mayor_aeropuerto2 = vertice_no
-    llave_valor_vertice1 = mp.get(analyzer['rutas_idayretorno']['vertices'], mayor_aeropuerto2)
-    lst2 = me.getValue(llave_valor_vertice1)
-    info_mayor2 = me.getValue(mp.get(analyzer['infoaeropuertos'],mayor_aeropuerto2))
-    return conectados_numero_interno,primeros5,mayor_numero2,info_mayor2
+        entran = gr.degree(analyzer['rutas_idayretorno'],vertice_no)
+        salen = gr.degree(analyzer['rutas_idayretorno'],vertice_no)
+        total_rutas = entran + salen
+        cantidad = newcantidad(vertice_no,total_rutas,entran,salen)
+        lt.addLast(lista_canitdad_grafo,cantidad)
+        lt.addLast(lista_final,cantidad)
+    orden_no = sortcomparecanitdades(lista_canitdad_grafo)
+    primeros5_no = lt.subList(orden_no,1,5)
+    conectados_numero_interno_no = lt.newList('ARRAY_LIST')
+    for c in lt.iterator(orden_no):
+        if c['cantidadtotal'] != 0:
+            lt.addLast(conectados_numero_interno_no,c)
+
+#Orden total
+
+    orden_final = sortcomparecanitdades(lista_final)
+    primeros5_final = lt.subList(orden_final,1,5)
+    conectados_numero_interno_final = lt.newList('ARRAY_LIST')
+    for c in lt.iterator(orden_final):
+        if c['cantidadtotal'] != 0:
+            lt.addLast(conectados_numero_interno_final,c)
+
+    return conectados_numero_interno,primeros5,conectados_numero_interno_no,primeros5_no,conectados_numero_interno_final,primeros5_final
 
 def segundo_req(analyzer,codigo1,codigo2):
 
@@ -308,25 +363,112 @@ def segundo_req(analyzer,codigo1,codigo2):
     conectados = scc.stronglyConnected(analyzer['componentes_grafo_dirigdo'],codigo1,codigo2)
     return numero_componentes,conectados
 
-def opciones_ciudades(analyzer,ciudad):
+def cuarto_req(analyzer,codigo1,millas):
 
-    lista_opciones_origen = mp.get(analyzer['infociudadesrepetidas'],ciudad)
+    kilometros = float(millas) * 1.60
 
-    return lista_opciones_origen
+#Respuesta maxima para recorrer
 
-def aeropuertoopciones(analyzer,ciudad):
+    search = pr.PrimMST(analyzer['rutas_idayretorno'])
+    edge = pr.edgesMST(analyzer['rutas_idayretorno'], search)
+    nodos_red_expansion = lt.size(edge['mst'])
 
-    longitud = float(ciudad['lng'])
-    latitud = float(ciudad['lat'])
-    lista_distancias = lt.newList('ARRAY_LIST')
-    llave_valor = mp.get(analyzer['aeropuertosenciudades'],ciudad['city'])
-    lista_aeropuertos = me.getValue(llave_valor)['repetidas']
-    for c in lt.iterator(lista_aeropuertos):
-        lat_aeropuerto = float(c['Latitude'])
-        long_aeropuerto = float(c['Longitude'])
-        distancia = haversine(latitud,longitud,lat_aeropuerto,long_aeropuerto)
-        aeropuerto_dist = newaeropuerto(c['IATA'],distancia)
-        lt.addLast(lista_distancias,aeropuerto_dist)
-    orden = sortcomparedistancias(lista_distancias)
-    aeropuerto_cercano = lt.firstElement(orden)
-    return aeropuerto_cercano
+    suma = 0
+    for c in lt.iterator(mp.valueSet(edge['distTo'])):
+        suma += c
+
+#camino mas largo
+
+    caminos = djk.Dijkstra(analyzer['rutas_idayretorno'], codigo1)
+    vertices_mapa = mp.keySet(caminos['visited'])
+    mayor_distacnia = 0
+    lista = None
+    for j in lt.iterator(vertices_mapa):
+        if djk.hasPathTo(caminos, j) is True:
+            camino_revisar = djk.pathTo(caminos, j)
+            cantidad = lt.size(camino_revisar)
+            if cantidad > mayor_distacnia:
+                mayor_distacnia = cantidad
+                lista = camino_revisar
+#FALTANTE O RESTANTE
+
+    costo_total = 0
+    for arcos in lt.iterator(lista):
+        costo_total += arcos['weight']
+
+    if kilometros > float(costo_total):
+        resta = (kilometros - float(costo_total))/1.6
+        respuesta = 'sobran ' + str(resta) + ' '
+
+    if float(costo_total) > kilometros:
+        resta = (float(costo_total) - kilometros)/1.6
+        respuesta = 'faltan ' + str(resta) + ' '
+
+    return nodos_red_expansion,round(suma,2),lista,respuesta
+
+def quinto_req(analyzer,codigo):
+
+
+    lista_total = lt.newList('ARRAY_LIST')
+#Grafo no dirigido
+
+    numero_afectados_nodiri = lt.size(gr.adjacents(analyzer['rutas_idayretorno'],codigo))
+    afectados_nodiri = gr.adjacents(analyzer['rutas_idayretorno'],codigo)
+
+    for c in lt.iterator(afectados_nodiri):
+        lt.addLast(lista_total,c)
+
+#Grafo dirigido
+
+    entran = gr.indegree(analyzer['rutas'],codigo)
+    salen = gr.outdegree(analyzer['rutas'],codigo)
+    total_afectados_diri = entran + salen
+    afectados_diri = lt.newList('ARRAY_LIST')
+    arcos_total = gr.edges(analyzer['rutas'])
+    for c in lt.iterator(arcos_total):
+        if c['vertexA'] == codigo:
+            existe = lt.isPresent(afectados_diri,c['vertexB'])
+            if existe == 0:
+                lt.addLast(afectados_diri,c['vertexB'])
+                lt.addLast(lista_total,c['vertexB'])
+        if c['vertexB'] == codigo:
+            existe = lt.isPresent(afectados_diri,c['vertexA'])
+            if existe == 0:
+                lt.addLast(afectados_diri,c['vertexA'])
+                lt.addLast(lista_total,c['vertexA'])
+    numero_afectados_diri = lt.size(afectados_diri)
+
+#restantes
+    restantes_digrafo = gr.numEdges(analyzer['rutas'])-total_afectados_diri
+    restantes_grafo = gr.numEdges(analyzer['rutas_idayretorno'])-numero_afectados_nodiri
+
+#impresion no dirigido
+    if lt.size(afectados_nodiri) >= 6:
+        primeros_nodiri = lt.subList(afectados_nodiri,1,3)
+        ultimos_nodiri = lt.subList(afectados_nodiri,lt.size(afectados_nodiri)-2,3)
+    else: 
+        primeros_nodiri = afectados_nodiri
+        ultimos_nodiri = afectados_nodiri
+
+#impresion dirigido
+    if lt.size(afectados_diri) >= 6:
+        primeros_diri = lt.subList(afectados_diri,1,3)
+        ultimos_diri = lt.subList(afectados_diri,lt.size(afectados_diri)-2,3)
+    else: 
+        primeros_diri = afectados_diri
+        ultimos_diri = afectados_diri
+
+#total
+
+    numero_afectados_toal = numero_afectados_diri + numero_afectados_nodiri
+
+#impresion total
+    if lt.size(lista_total) >= 6:
+        primeros_total = lt.subList(lista_total,1,3)
+        ultimos_total = lt.subList(lista_total,lt.size(lista_total)-2,3)
+    else: 
+        primeros_total = lista_total
+        ultimos_total = lista_total
+
+
+    return restantes_digrafo,restantes_grafo,numero_afectados_nodiri,primeros_nodiri,ultimos_nodiri,numero_afectados_diri,primeros_diri,ultimos_diri,numero_afectados_toal,primeros_total,ultimos_total

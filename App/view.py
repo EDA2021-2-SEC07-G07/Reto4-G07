@@ -29,6 +29,7 @@ from DISClib.ADT.graph import gr
 from DISClib.ADT import map as mp
 from DISClib.DataStructures import mapentry as me
 from prettytable import PrettyTable
+from DISClib.Algorithms.Graphs import prim as pr
 
 sys.setrecursionlimit(20000)
 
@@ -115,6 +116,41 @@ def print_aaeropuertos_conectados(aeropuertos):
     else:
         print('No se encontro el autor.\n')
 
+def print_aeropuerto_LISTA(aeropuertos):
+    """
+    Imprime la información del autor seleccionado
+    """
+    if aeropuertos == '':
+        print('No se encontraron artistas nacidos en el rango dado')
+    elif aeropuertos:
+        print("\n")
+        x = PrettyTable(["IATA",'Nombre','Ciudad','Pais'])
+        x._max_width = {"IATA" : 20, "Nombre" : 20,"Ciudad" : 20, "Pais" : 20}
+        for aeropuerto in lt.iterator(aeropuertos):
+            info_aeropuerto = me.getValue(mp.get(cont['infoaeropuertos'],aeropuerto))
+            x.add_row([info_aeropuerto['IATA']+'\n', info_aeropuerto['Name'], info_aeropuerto['City'],info_aeropuerto['Country']])
+        print(x)
+        print("\n")
+    else:
+        print('No se encontro el autor.\n')
+
+def print_camino(aeropuertos):
+    """
+    Imprime la información del autor seleccionado
+    """
+    if aeropuertos == '':
+        print('No se encontraron artistas nacidos en el rango dado')
+    elif aeropuertos:
+        print("\n")
+        x = PrettyTable(["Salida",'Llegada','Distancia'])
+        x._max_width = {"Salida" : 20, "Llegada" : 20,"Distancia" : 20}
+        for aeropuerto in lt.iterator(aeropuertos):
+            x.add_row([aeropuerto['vertexA']+'\n', aeropuerto['vertexB'], aeropuerto['weight']])
+        print(x)
+        print("\n")
+    else:
+        print('No se encontro el autor.\n')
+
 
 """
 La vista se encarga de la interacción con el usuario
@@ -158,15 +194,21 @@ while True:
         print('Numero de rutas: ' + str(gr.numEdges(cont['rutas'])))
         print('\n' + 'Primer aeropuerto del grafo' + '\n')
         print_aeropuerto(controller.infoaeropuerto(cont,lt.firstElement(gr.vertices(cont['rutas']))))
+        print('\n' + 'Ultimo aeropuerto del grafo' + '\n')
+        print_aeropuerto(controller.infoaeropuerto(cont,lt.lastElement(gr.vertices(cont['rutas']))))
 
         print('\n' +('-'*20)+ 'Informacion grafo no dirigido' +('-'*20)+ '\n')
         print('Numero de aeropuertos: ' + str(gr.numVertices(cont['rutas_idayretorno'])))
         print('Numero de rutas: ' + str(gr.numEdges(cont['rutas_idayretorno'])))
         print('\n' + 'Primer aeropuerto del grafo' + '\n')
         print_aeropuerto(controller.infoaeropuerto(cont,lt.firstElement(gr.vertices(cont['rutas_idayretorno']))))
+        print('\n' + 'Ultimo aeropuerto del grafo' + '\n')
+        print_aeropuerto(controller.infoaeropuerto(cont,lt.lastElement(gr.vertices(cont['rutas_idayretorno']))))
 
         print('\n' +('-'*20)+ 'Informacion ciudades' +('-'*20)+ '\n')
         print('Total de ciudades: ' + str(lt.size(cont['ciudades'])))
+        print('\n' + 'Primera ciudad cargada' + '\n')
+        print_ciudades(lt.firstElement(cont['ciudades']))
         print('\n' + 'Ultima ciudad cargada' + '\n')
         print_ciudades(lt.lastElement(cont['ciudades']))
 
@@ -177,9 +219,13 @@ while True:
         print('aqui se ve a presentar la lista de areopuertos y el numero de aeropuertos conectados del grafo dirigido')
         print_aaeropuertos_conectados(respuesta[1])
 
+        print('\n' + 'El numero de aeropuertos conectados es de:' + str(lt.size(respuesta[2])))
         print('aqui se ve a presentar la lista de areopuertos y el numero de aeropuertos conectados del grafo no dirigido')
-        print('\n' + 'El numero de aeropuertos conectados es de:' + str(respuesta[2]))
-        print_aeropuerto(respuesta[3])
+        print_aaeropuertos_conectados(respuesta[3])
+
+        print('\n' + 'El numero de aeropuertos conectados es de:' + str(lt.size(respuesta[4])))
+        print('aqui se ve a presentar la lista de areopuertos y el numero de aeropuertos conectados en totalidad en ambos grafos')
+        print_aaeropuertos_conectados(respuesta[5])
 
     elif int(inputs[0]) == 4:
         
@@ -188,7 +234,7 @@ while True:
         codigo2 = input('Escriba el codigo del segundo aeropuerto')
         respuesta = controller.segundo_req(cont,codigo1,codigo2)
         print('\n' + 'El numero de elementos fuertemente conectados es de:' + str(respuesta[0]))
-        print('\n' + 'Los dos vertices estan fuertemente conectados:' + str(respuesta[1]))
+        print('\n' + 'Los dos vertices pertenecen al mismo cluster:' + str(respuesta[1]))
 
     elif int(inputs[0]) == 5:
         
@@ -216,10 +262,44 @@ while True:
     elif int(inputs[0]) == 6:
         
         print('aqui se ve a presentar la red expansion minima')
+        ciudad1 = input('Escriba el nombre de la ciudad de origen')
+        opcion_origen = controller.opciones_ciudades(cont,ciudad1)
+        print_opciones(opcion_origen)
+        ciudad_origen = input('Escriba la opcion de la tabla de arriba que desea buscar')
+        info_ciudad_origen = lt.getElement(me.getValue(opcion_origen)['repetidas'],int(ciudad_origen))
+        print_ciudades_opciones(info_ciudad_origen)
+        aeropuerto1 = controller.aeropuertoopciones(cont,info_ciudad_origen)
+        millas = input('Escriba la cantidad de millas qeu tiene')
+        respuesta = controller.cuarto_req(cont,aeropuerto1['aeropuerto'],millas)
+        print('\n' + 'El numero de nodos conectados es:' + str(respuesta[0]))
+        print('\n' + 'El costo total de la red de expansion es de:' + str(respuesta[1]))
+        print_camino(respuesta[2])
+        print('\n' + respuesta[3] + 'millas para la ruta mas larga')
 
     elif int(inputs[0]) == 7:
         
-        print('aqui se ve a presentar la afectacion de un vuelo')
+        codigo1 = input('Escriba el codigo del primer aeropuerto')
+        respuesta = controller.quinto_req(cont,codigo1)
+        print('\n' + 'El numero de rutas restantes es de (en el digrafo):' + str(respuesta[0]))
+        print('\n' + 'El numero de rutas restantes es de (en el grafo no dirigido):' + str(respuesta[1]))
+
+        print('\n' + 'El numero de aeropuertos afectados en totalidad:' + str(respuesta[8]))
+        print('\n' + 'La lista de los primeros 3 aeropuertos son los siguientes:')
+        print_aeropuerto_LISTA(respuesta[9])
+        print('\n' + 'La lista de los ultimos 3 aeropuertos son los siguientes:')
+        print_aeropuerto_LISTA(respuesta[10])
+
+        print('\n' + 'El numero de aeropuertos afectados en el grafo no dirigido:' + str(respuesta[2]))
+        print('\n' + 'La lista de los primeros 3 aeropuertos son los siguientes:')
+        print_aeropuerto_LISTA(respuesta[3])
+        print('\n' + 'La lista de los ultimos 3 aeropuertos son los siguientes:')
+        print_aeropuerto_LISTA(respuesta[4])
+
+        print('\n' + 'El numero de aeropuertos afectados en el grafo dirigido:' + str(respuesta[5]))
+        print('\n' + 'La lista de los primeros 3 aeropuertos son los siguientes:')
+        print_aeropuerto_LISTA(respuesta[6])
+        print('\n' + 'La lista de los ultimos 3 aeropuertos son los siguientes:')
+        print_aeropuerto_LISTA(respuesta[7])
 
     else:
         sys.exit(0)
