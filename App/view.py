@@ -30,6 +30,7 @@ from DISClib.ADT import map as mp
 from DISClib.DataStructures import mapentry as me
 from prettytable import PrettyTable
 from DISClib.Algorithms.Graphs import prim as pr
+import time
 
 sys.setrecursionlimit(20000)
 
@@ -213,7 +214,8 @@ while True:
         print_ciudades(lt.lastElement(cont['ciudades']))
 
     elif int(inputs[0]) == 3:
-
+        
+        start_time = time.process_time()
         respuesta = controller.primer_req(cont)
         print('\n' + 'El numero de aeropuertos conectados es de:' + str(lt.size(respuesta[0])))
         print('aqui se ve a presentar la lista de areopuertos y el numero de aeropuertos conectados del grafo dirigido')
@@ -226,15 +228,22 @@ while True:
         print('\n' + 'El numero de aeropuertos conectados es de:' + str(lt.size(respuesta[4])))
         print('aqui se ve a presentar la lista de areopuertos y el numero de aeropuertos conectados en totalidad en ambos grafos')
         print_aaeropuertos_conectados(respuesta[5])
+        stop_time = time.process_time()
+        elapsed_time_mseg = (stop_time - start_time)*1000
+        print(elapsed_time_mseg)
 
     elif int(inputs[0]) == 4:
         
         print('aqui se ve a presentar el cluster prsente en la red de aeropuertos y una comparacion')
         codigo1 = input('Escriba el codigo del primer aeropuerto')
         codigo2 = input('Escriba el codigo del segundo aeropuerto')
+        start_time = time.process_time()
         respuesta = controller.segundo_req(cont,codigo1,codigo2)
         print('\n' + 'El numero de elementos fuertemente conectados es de:' + str(respuesta[0]))
         print('\n' + 'Los dos vertices pertenecen al mismo cluster:' + str(respuesta[1]))
+        stop_time = time.process_time()
+        elapsed_time_mseg = (stop_time - start_time)*1000
+        print(elapsed_time_mseg)
 
     elif int(inputs[0]) == 5:
         
@@ -270,15 +279,20 @@ while True:
         print_ciudades_opciones(info_ciudad_origen)
         aeropuerto1 = controller.aeropuertoopciones(cont,info_ciudad_origen)
         millas = input('Escriba la cantidad de millas qeu tiene')
+        start_time = time.process_time()
         respuesta = controller.cuarto_req(cont,aeropuerto1['aeropuerto'],millas)
         print('\n' + 'El numero de nodos conectados es:' + str(respuesta[0]))
         print('\n' + 'El costo total de la red de expansion es de:' + str(respuesta[1]))
         print_camino(respuesta[2])
         print('\n' + respuesta[3] + 'millas para la ruta mas larga')
+        stop_time = time.process_time()
+        elapsed_time_mseg = (stop_time - start_time)*1000
+        print(elapsed_time_mseg)
 
     elif int(inputs[0]) == 7:
         
         codigo1 = input('Escriba el codigo del aeropuerto que sale de funcionamiento')
+        start_time = time.process_time()
         respuesta = controller.quinto_req(cont,codigo1)
         print('\n' + 'El numero de rutas restantes es de (en el digrafo):' + str(respuesta[0]))
         print('\n' + 'El numero de rutas restantes es de (en el grafo no dirigido):' + str(respuesta[1]))
@@ -300,6 +314,10 @@ while True:
         print_aeropuerto_LISTA(respuesta[6])
         print('\n' + 'La lista de los ultimos 3 aeropuertos son los siguientes:')
         print_aeropuerto_LISTA(respuesta[7])
+
+        stop_time = time.process_time()
+        elapsed_time_mseg = (stop_time - start_time)*1000
+        print(elapsed_time_mseg)
 
     else:
         sys.exit(0)
