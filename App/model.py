@@ -25,6 +25,7 @@
  """
 
 
+from sys import path
 import config
 from DISClib.ADT.graph import gr
 from DISClib.ADT import list as lt
@@ -37,6 +38,7 @@ from DISClib.Algorithms.Graphs import prim as pr
 from DISClib.Utils import error as error
 assert config
 import math
+from DISClib.Algorithms.Graphs import dfs as df
 
 def haversine(lat1, lon1, lat2, lon2):
     rad=math.pi/180
@@ -373,6 +375,20 @@ def cuarto_req(analyzer,codigo1,millas):
     edge = pr.edgesMST(analyzer['rutas_idayretorno'], search)
     nodos_red_expansion = lt.size(edge['mst'])
 
+#Definir camino mas largo
+    busqeuda = df.DepthFirstSearch(analyzer['rutas_idayretorno'],codigo1)
+
+    mayor = 0
+    maximo = None
+    for j in lt.iterator(gr.vertices(analyzer['rutas_idayretorno'])):
+        camino_espe = df.pathTo(busqeuda,j)
+        existe_camino = df.hasPathTo(busqeuda,j)
+        if existe_camino is True:
+            if lt.size(camino_espe) > mayor:
+                mayor = lt.size(camino_espe)
+                maximo = j
+
+
     suma = 0
     for c in lt.iterator(mp.valueSet(edge['distTo'])):
         suma += c
@@ -380,16 +396,8 @@ def cuarto_req(analyzer,codigo1,millas):
 #camino mas largo
 
     caminos = djk.Dijkstra(analyzer['rutas_idayretorno'], codigo1)
-    vertices_mapa = mp.keySet(caminos['visited'])
-    mayor_distacnia = 0
-    lista = None
-    for j in lt.iterator(vertices_mapa):
-        if djk.hasPathTo(caminos, j) is True:
-            camino_revisar = djk.pathTo(caminos, j)
-            cantidad = lt.size(camino_revisar)
-            if cantidad > mayor_distacnia:
-                mayor_distacnia = cantidad
-                lista = camino_revisar
+    lista = djk.pathTo(caminos,maximo)
+
 #FALTANTE O RESTANTE
 
     costo_total = 0
@@ -397,11 +405,11 @@ def cuarto_req(analyzer,codigo1,millas):
         costo_total += arcos['weight']
 
     if kilometros > float(costo_total):
-        resta = (kilometros - float(costo_total))/1.6
+        resta = round((kilometros - float(costo_total))/1.6,2)
         respuesta = 'sobran ' + str(resta) + ' '
 
     if float(costo_total) > kilometros:
-        resta = (float(costo_total) - kilometros)/1.6
+        resta = round((float(costo_total) - kilometros)/1.6,2)
         respuesta = 'faltan ' + str(resta) + ' '
 
     return nodos_red_expansion,round(suma,2),lista,respuesta

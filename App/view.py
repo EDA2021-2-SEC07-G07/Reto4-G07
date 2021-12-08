@@ -278,7 +278,7 @@ while True:
 
     elif int(inputs[0]) == 7:
         
-        codigo1 = input('Escriba el codigo del primer aeropuerto')
+        codigo1 = input('Escriba el codigo del aeropuerto que sale de funcionamiento')
         respuesta = controller.quinto_req(cont,codigo1)
         print('\n' + 'El numero de rutas restantes es de (en el digrafo):' + str(respuesta[0]))
         print('\n' + 'El numero de rutas restantes es de (en el grafo no dirigido):' + str(respuesta[1]))

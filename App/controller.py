@@ -49,8 +49,8 @@ def loadAirportsRutes(analyzer):
     addRouteConnection crea conexiones entre diferentes rutas
     servidas en una misma estación.
     """
-    airportsfile = cf.data_dir + 'Vuelos/airports-utf8-small.csv'
-    rutasfile = cf.data_dir + 'Vuelos/routes-utf8-small.csv'
+    airportsfile = cf.data_dir + 'Vuelos/airports-utf8-large.csv'
+    rutasfile = cf.data_dir + 'Vuelos/routes-utf8-large.csv'
     ciudaesfile = cf.data_dir + 'Vuelos/worldcities-utf8.csv'
 
     input_file_aeropuertos = csv.DictReader(open(airportsfile, encoding="utf-8"),
