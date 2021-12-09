@@ -130,3 +130,10 @@ def aeropuertoopciones(analyzer,ciudad):
     """
     aeropuertos = model.aeropuertoopciones(analyzer,ciudad)
     return aeropuertos
+
+def req3_origen(analyzer,  aero1, aero2):
+    
+    req = model.req3_origen(analyzer, aero1, aero2)
+    return req
+
+

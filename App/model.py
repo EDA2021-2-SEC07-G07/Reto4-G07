@@ -480,3 +480,17 @@ def quinto_req(analyzer,codigo):
 
 
     return restantes_digrafo,restantes_grafo,numero_afectados_nodiri,primeros_nodiri,ultimos_nodiri,numero_afectados_diri,primeros_diri,ultimos_diri,numero_afectados_toal,primeros_total,ultimos_total
+
+def req3_origen(analyzer, aero1, aero2 ):
+    
+    caminos = djk.Dijkstra(analyzer['rutas'], aero1)
+    lista = djk.pathTo(caminos,aero2)
+
+    costo_total = 0
+    for arcos in lt.iterator(lista):
+        costo_total += arcos['weight']
+
+
+    return lista,costo_total
+
+

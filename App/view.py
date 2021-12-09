@@ -168,7 +168,7 @@ def printMenu():
     print("2- Cargar información de archivos de vuelos")
     print("3- Encontrar puntos de interconexión aérea")
     print("4- Encontrar clústeres de tráfico aéreo")
-    print("5- ----------------ADELANTO REQUERIMIENTO TRES---------")
+    print("5- Calculo de distancia entre dos aéropuertos")
     print("6- Utilizar las millas de viajero")
     print("7- Cuantificar el efecto de un aeropuerto cerrado")
     print("0- Salir")
@@ -247,7 +247,7 @@ while True:
 
     elif int(inputs[0]) == 5:
         
-        print('aqui se ve a presentar lla ruta mas corta entre dos ciudades')
+        print('aqui se ve a presentar la ruta mas corta entre dos ciudades')
 #ORIGEN -------------------------------------------------------------------------------------------------
         ciudad1 = input('Escriba el nombre de la ciudad de origen')
         opcion_origen = controller.opciones_ciudades(cont,ciudad1)
@@ -267,6 +267,11 @@ while True:
         print_ciudades_opciones(info_ciudad_destino)
         aeropuerto2 = controller.aeropuertoopciones(cont,info_ciudad_destino)
         print('\n' + 'El aeropuerto de destino seleccionado es:' + str(aeropuerto2['aeropuerto']))
+
+        respuesta= controller.req3_origen(cont, aeropuerto1["aeropuerto"], aeropuerto2["aeropuerto"])
+
+        print('\n' + 'La distancia total es de:' + str(respuesta[1]))
+        print_camino(respuesta[0])
 
     elif int(inputs[0]) == 6:
         
